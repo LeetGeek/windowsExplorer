@@ -66,15 +66,21 @@ namespace jvh.winEx.Controls.WinEx
 
         private void ButtonGoBack_OnClick(object sender, RoutedEventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(ViewModel.TargetDirectory)) return;
+
             try
             {
                 var di = new DirectoryInfo(ViewModel.TargetDirectory).Parent;
                 if (di != null)
                     ViewModel.TargetDirectory = di.FullName;
+                else
+                {
+                    ViewModel.TargetDirectory = "";
+                }
             }
             catch (Exception exception)
             {
-                
+                ViewModel.TargetDirectory = "";
             }
         }
     }

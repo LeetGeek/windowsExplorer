@@ -40,6 +40,10 @@ namespace jvh.winEx.Controls.WinEx
         {
             if(item.ItemType != WinExDisplayItemType.FILE)
                 TargetDirectory = item.Path;
+            else
+            {
+                System.Diagnostics.Process.Start(item.Path);
+            }
         }
 
         private void OnDirectoryChange(string directory)
@@ -54,11 +58,12 @@ namespace jvh.winEx.Controls.WinEx
             {
                 if (currentDirectory == "")
                 {
-                    var drives = Directory.GetLogicalDrives();
+                    var drives = DriveInfo.GetDrives();
+                    //var drives = Directory.GetLogicalDrives();
                     foreach (var drive in drives)
                     {
-                        var driveInfo = new DriveInfo(drive);
-                        var item = WinExDisplayItem.CreateDrive(driveInfo);
+                        //var driveInfo = new DriveInfo(drive);
+                        var item = WinExDisplayItem.CreateDrive(drive);
                         list.Add(item);
                     }
                 }
