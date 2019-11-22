@@ -83,9 +83,9 @@ namespace jvh.WindowsExplorer.UI2.Controls
 
         private void UpdateItemView(string currentDirectory)
         {
-            var list = new List<FileSystemDisplayItem>();
             try
             {
+                var list = new List<FileSystemDisplayItem>();
                 var directories = Directory.GetDirectories(currentDirectory);
                 foreach (var d in directories)
                 {
@@ -106,7 +106,6 @@ namespace jvh.WindowsExplorer.UI2.Controls
 
                 VM.TargetDirectory = currentDirectory;
                 VM.DisplayItems = FileItems;
-                //ListBoxMain.ItemsSource = FileItems;
             }
             catch (UnauthorizedAccessException e)
             {

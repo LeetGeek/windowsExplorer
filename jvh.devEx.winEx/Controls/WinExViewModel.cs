@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using Prism.Mvvm;
+using DevExpress.Mvvm;
 
-namespace jvh.winEx.Controls.WinEx
+namespace jvh.devEx.winEx.Controls
 {
-    class WinExViewModel : BindableBase
+    class WinExViewModel : ViewModelBase
     {
         private string _TargetDirectory;
         public string TargetDirectory
@@ -16,7 +15,7 @@ namespace jvh.winEx.Controls.WinEx
             get => _TargetDirectory;
             set
             {
-                if (SetProperty(ref _TargetDirectory, value))
+                if (SetProperty(ref _TargetDirectory, value, nameof(TargetDirectory)))
                     OnDirectoryChange(value);
             } 
         }
@@ -25,7 +24,7 @@ namespace jvh.winEx.Controls.WinEx
         public IEnumerable<WinExDisplayItem> DisplayItems
         {
             get => _DisplayItems;
-            set => SetProperty(ref _DisplayItems, value);
+            set => SetProperty(ref _DisplayItems, value, nameof(DisplayItems));
         }
 
 
