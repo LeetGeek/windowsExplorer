@@ -1,0 +1,145 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using Prism.Mvvm;
+
+namespace jvh.winEx.Controls.WinEx
+{
+    class WinExViewModel : BindableBase
+    {
+        private string _TargetDirectory;
+        public string TargetDirectory
+        {
+            get => _TargetDirectory;
+            set
+            {
+                if (SetProperty(ref _TargetDirectory, value))
+                    OnDirectoryChange(value);
+            } 
+        }
+
+        private IEnumerable<WinExDisplayItem> _DisplayItems;
+        public IEnumerable<WinExDisplayItem> DisplayItems
+        {
+            get => _DisplayItems;
+            set => SetProperty(ref _DisplayItems, value);
+        }
+
+
+
+        public WinExViewModel()
+        {
+            TargetDirectory = "";
+        }
+
+
+
+
+        public void Open(WinExDisplayItem item)
+        {
+            if(item.ItemType != WinExDisplayItemType.FILE)
+                TargetDirectory = item.Path;
+        }
+
+        private void OnDirectoryChange(string directory)
+        {
+            UpdateView(directory);
+        }
+
+        private void UpdateView(string currentDirectory)
+        {
+            var list = new List<WinExDisplayItem>();
+            try
+            {
+                if (currentDirectory == "")
+                {
+                    var drives = Directory.GetLogicalDrives();
+                    foreach (var drive in drives)
+                    {
+                        var driveInfo = new DriveInfo(drive);
+                        var item = WinExDisplayItem.CreateDrive(driveInfo);
+                        list.Add(item);
+                    }
+                }
+                else
+                {
+                    var directories = Directory.GetDirectories(currentDirectory);
+                    foreach (var d in directories)
+                    {
+                        var info = new DirectoryInfo(d);
+                        var item = WinExDisplayItem.CreateFolder(info);
+                        list.Add(item);
+                    }
+
+                    var files = Directory.GetFiles(currentDirectory);
+                    foreach (var s in files)
+                    {
+                        var info = new FileInfo(s);
+                        var item = WinExDisplayItem.CreateFile(info);
+                        list.Add(item);
+                    }
+                }
+
+                this.DisplayItems = list;
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
+
+    enum WinExDisplayItemType
+    {
+        DRIVE,
+        FILE,
+        FOLDER
+    }
+
+    class WinExDisplayItem
+    {
+        public WinExDisplayItemType ItemType { get; }
+        public string Name { get; }
+        public string Path { get; }
+        public string CreationDateTime { get; }
+
+        public WinExDisplayItem(WinExDisplayItemType itemType, string name, string path, DateTime? creationDateTime)
+        {
+            ItemType = itemType;
+            Name = name;
+            Path = path;
+            CreationDateTime = creationDateTime?.ToString() ?? "";
+        }
+
+        public static WinExDisplayItem Create(object info)
+        {
+            switch (info)
+            {
+                case DriveInfo drive:
+                    return CreateDrive(drive);
+                case DirectoryInfo folder:
+                    return CreateFolder(folder);
+                case FileInfo file:
+                    return CreateFile(file);
+                
+                default: throw new ArgumentException("info object is not a valid type");
+            }
+        }
+
+        public static WinExDisplayItem CreateDrive(DriveInfo info)
+        {
+            return new WinExDisplayItem(WinExDisplayItemType.DRIVE, info.Name, info.Name, null);
+        }
+
+        public static WinExDisplayItem CreateFile(FileInfo info)
+        {
+            return new WinExDisplayItem(WinExDisplayItemType.FILE, info.Name, info.FullName, info.CreationTime);
+        }
+
+        public static WinExDisplayItem CreateFolder(DirectoryInfo info)
+        {
+            return new WinExDisplayItem(WinExDisplayItemType.FOLDER, info.Name, info.FullName, info.CreationTime);
+        }
+    }
+}

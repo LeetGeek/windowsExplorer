@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Prism.Mvvm;
 
 namespace jvh.WindowsExplorer.UI2.Controls
 {
@@ -22,8 +23,9 @@ namespace jvh.WindowsExplorer.UI2.Controls
     /// </summary>
     public partial class WindowsExplorer : UserControl
     {
+        ViewModel VM { get => DataContext as ViewModel;}
         public string TargetPath { get; private set; }
-        public List<FileItem> FileItems { get; private set; } = new List<FileItem>();
+        public List<FileSystemDisplayItem> FileItems { get; private set; } = new List<FileSystemDisplayItem>();
 
         private object dummyNode = null;
         public WindowsExplorer()
@@ -36,6 +38,7 @@ namespace jvh.WindowsExplorer.UI2.Controls
             }
 
             Loaded += WindowsExplorerControl_Loaded;
+            this.DataContext = new ViewModel();
         }
 
         private void WindowsExplorerControl_Loaded(object sender, RoutedEventArgs e)
@@ -48,7 +51,7 @@ namespace jvh.WindowsExplorer.UI2.Controls
                 item.Header = s;
                 item.Tag = s;
 
-                item.Expanded += new RoutedEventHandler(folder_Expanded);
+                item.Expanded += new RoutedEventHandler(Folder_Expanded);
                 item.Items.Add(dummyNode);
                 list.Add(item);
             }
@@ -80,28 +83,37 @@ namespace jvh.WindowsExplorer.UI2.Controls
 
         private void UpdateItemView(string currentDirectory)
         {
-            var list = new List<FileItem>();
+            var list = new List<FileSystemDisplayItem>();
             try
             {
-                var file = Directory.GetFiles(currentDirectory);
-                foreach (var s in file)
+                var directories = Directory.GetDirectories(currentDirectory);
+                foreach (var d in directories)
                 {
-                    var fi = new FileItem(s.Substring(s.LastIndexOf("\\") + 1), IconManager.FindIconForFilename(s, true));
-                    list.Add(fi);
+                    var info = new DirectoryInfo(d);
+                    var item = FileSystemDisplayItem.CreateFolder(d, info.CreationTime.ToString()); 
+                    list.Add(item);
+                }
+
+                var files = Directory.GetFiles(currentDirectory);
+                foreach (var s in files)
+                {
+                    var info = new FileInfo(s);
+                    var item = FileSystemDisplayItem.CreateFile(s, IconManager.FindIconForFilename(s, false), info.CreationTime.ToString());
+                    list.Add(item);
                 }
 
                 FileItems = list;
-                ItemView.ItemsSource = null;
-                ItemView.ItemsSource = FileItems;
+
+                VM.TargetDirectory = currentDirectory;
+                VM.DisplayItems = FileItems;
+                //ListBoxMain.ItemsSource = FileItems;
             }
             catch (UnauthorizedAccessException e)
             {
                 Console.WriteLine(e);
-                
             }
-            
         }
-        private void folder_Expanded(object sender, RoutedEventArgs e)
+        private void Folder_Expanded(object sender, RoutedEventArgs e)
         {
 
 
@@ -121,7 +133,7 @@ namespace jvh.WindowsExplorer.UI2.Controls
 
                         subitem.FontWeight = FontWeights.Normal;
                         subitem.Items.Add(dummyNode);
-                        subitem.Expanded += new RoutedEventHandler(folder_Expanded);
+                        subitem.Expanded += new RoutedEventHandler(Folder_Expanded);
                         item.Items.Add(subitem);
 
                     }
@@ -136,20 +148,76 @@ namespace jvh.WindowsExplorer.UI2.Controls
 
 
         }
-
-        public class FileItem
+        private void UIElement_OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            public string Name { get; set; }
-            public ImageSource Img { get; set; }
-
-            public FileItem(string name, ImageSource img)
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2)
             {
-                Name = name;
-                Img = img;
+                var g = sender as Grid;
+                var d = g.DataContext as FileSystemDisplayItem;
+
+                if (d.ItemType == FileSystemItemType.FILE)
+                {
+
+                }
+                else
+                {
+                    UpdateItemView(d.FullPath);
+                }
             }
         }
+    }
+    public enum FileSystemItemType
+    {
+        FILE,
+        FOLDER,
+    }
 
+    public class FileSystemDisplayItem
+    {
+        public string Name { get; set; }
+        public ImageSource Img { get; set; }
+        public string FullPath { get; }
+        public string LastUpdate { get; set; }
 
+        public FileSystemItemType ItemType { get; set; }
+
+        public FileSystemDisplayItem(string name, FileSystemItemType itemType, string fullPath, ImageSource img, string lastUpdate)
+        {
+            Name = name;
+            ItemType = itemType;
+            FullPath = fullPath;
+            Img = img;
+            LastUpdate = lastUpdate;
+        }
+
+        public static FileSystemDisplayItem CreateFile(string path, ImageSource img, string lastUpdate)
+        {
+            return new FileSystemDisplayItem(path.Substring(path.LastIndexOf("\\") + 1), FileSystemItemType.FILE, path, img, lastUpdate);
+        }
+
+        public static FileSystemDisplayItem CreateFolder(string path, string lastUpdate)
+        {
+            Uri uri = new Uri("pack://application:,,,/Assets/Img/folder.png");
+            BitmapImage source = new BitmapImage(uri);
+            return new FileSystemDisplayItem(path.Substring(path.LastIndexOf("\\") + 1), FileSystemItemType.FOLDER, path, source, lastUpdate);
+        }
+    }
+    class ViewModel : BindableBase
+    {
+        private string _TargetDirectory;
+        public string TargetDirectory
+        {
+            get => _TargetDirectory;
+            set => SetProperty(ref _TargetDirectory, value);
+        }
+
+        private IEnumerable<FileSystemDisplayItem> _DisplayItems;
+
+        public IEnumerable<FileSystemDisplayItem> DisplayItems
+        {
+            get => _DisplayItems;
+            set => SetProperty(ref _DisplayItems, value);
+        }
     }
 }
 
