@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using Prism.Mvvm;
 
 namespace jvh.winEx.Controls.WinEx
@@ -33,9 +34,6 @@ namespace jvh.winEx.Controls.WinEx
             TargetDirectory = "";
         }
 
-
-
-
         public void Open(WinExDisplayItem item)
         {
             if(item.ItemType != WinExDisplayItemType.FILE)
@@ -59,31 +57,17 @@ namespace jvh.winEx.Controls.WinEx
                 if (currentDirectory == "")
                 {
                     var drives = DriveInfo.GetDrives();
-                    //var drives = Directory.GetLogicalDrives();
                     foreach (var drive in drives)
                     {
-                        //var driveInfo = new DriveInfo(drive);
                         var item = WinExDisplayItem.CreateDrive(drive);
                         list.Add(item);
                     }
                 }
                 else
                 {
-                    var directories = Directory.GetDirectories(currentDirectory);
-                    foreach (var d in directories)
-                    {
-                        var info = new DirectoryInfo(d);
-                        var item = WinExDisplayItem.CreateFolder(info);
-                        list.Add(item);
-                    }
-
-                    var files = Directory.GetFiles(currentDirectory);
-                    foreach (var s in files)
-                    {
-                        var info = new FileInfo(s);
-                        var item = WinExDisplayItem.CreateFile(info);
-                        list.Add(item);
-                    }
+                    var root = new DirectoryInfo(currentDirectory);
+                    list.AddRange(root.GetDirectories().Select(WinExDisplayItem.CreateFolder));
+                    list.AddRange(root.GetFiles().Select(WinExDisplayItem.CreateFile));
                 }
 
                 this.DisplayItems = list;
